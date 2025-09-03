@@ -6,10 +6,14 @@ channels:
   - defaults
 dependencies:
   - python=3.10
-  - cudf=24.06
-  - cuml=24.06
-  - xgboost=2.0
+  - cudf=24.08
+  - cuml=24.08
   - scikit-learn
   - pandas
-  - codecarbon
   - matplotlib
+  - pip
+  - ca-certificates
+  - conda-forge::codecarbon
+  - pip:
+    - xgboost==2.0.0
+
