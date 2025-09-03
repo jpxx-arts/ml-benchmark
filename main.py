@@ -2,7 +2,6 @@ import pandas as pd
 import datetime
 import os
 import sys
-import time
 import warnings
 import logging
 import codecarbon
@@ -82,8 +81,6 @@ for model_id, model_cls in models_to_test.items():
         if cost_scenario == 'compute_bound':
             params = compute_bound_params.get(model_id, {})
         
-        start_time = time.time()
-        
         # Treinamento e Predição
         accuracy = None
         if model_id == "xgb":
@@ -99,8 +96,6 @@ for model_id, model_cls in models_to_test.items():
             preds = model.predict(X_test)
             accuracy = accuracy_score(y_test, preds)
 
-        duration_real = time.time() - start_time
-        time.sleep(1)
     except Exception as e:
         print(f"Erro ao treinar {model_id}: {e}")
         duration_real, accuracy = None, None
