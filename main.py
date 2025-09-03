@@ -5,7 +5,7 @@ import sys
 import time
 import warnings
 import logging
-from codecarbon import EmissionsTracker
+import codecarbon
 from sklearn.datasets import make_classification
 
 # cuML imports (GPU-ready)
