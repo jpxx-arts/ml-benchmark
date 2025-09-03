@@ -3,6 +3,8 @@ import datetime
 import os
 import sys
 import time
+import warnings
+import logging
 from codecarbon import EmissionsTracker
 from sklearn.datasets import make_classification
 
@@ -14,20 +16,34 @@ from cuml import MultinomialNB as cuNB
 import xgboost as xgb
 
 # -----------------------
+# 0. Configurações gerais
+# -----------------------
+# Silenciar warnings
+warnings.filterwarnings("ignore")
+logging.getLogger().setLevel(logging.ERROR)
+os.environ["NUMBA_WARNINGS"] = "0"
+codecarbon.LOGGER.setLevel(logging.ERROR)
+
+# -----------------------
 # 1. Argumentos e datasets
 # -----------------------
-if len(sys.argv) < 3:
-    print("Erro: Forneça o cenário ('comm_bound' ou 'compute_bound') e o run_id como argumentos.")
-    print("Exemplo: python main.py comm_bound 1")
+if len(sys.argv) < 4:
+    print("Erro: Forneça o cenário ('comm_bound' ou 'compute_bound'), run_id e execution_mode ('cc_on' ou 'cc_off').")
+    print("Exemplo: python main.py comm_bound 1 cc_on")
     sys.exit(1)
 
 cost_scenario = sys.argv[1]
 run_id = int(sys.argv[2])
+EXECUTION_MODE = sys.argv[3]  # cc_on ou cc_off
+
 print(f"Execução ID: {run_id}")
 print(f"Cenário: {cost_scenario}")
+print(f"Execution Mode: {EXECUTION_MODE}")
 
+# -----------------------
+# Dataset conforme gargalo
+# -----------------------
 if cost_scenario == "comm_bound":
-    # Gargalo de comunicação: dataset grande
     X, y = make_classification(
         n_samples=200_000,
         n_features=100,
@@ -36,7 +52,6 @@ if cost_scenario == "comm_bound":
         random_state=42
     )
 elif cost_scenario == "compute_bound":
-    # Gargalo de computação: dataset menor e denso
     X, y = make_classification(
         n_samples=50_000,
         n_features=40,
@@ -74,11 +89,14 @@ models_to_test = {
 }
 
 # -----------------------
-# 4. Execução do benchmark
+# 4. Pasta de saída
 # -----------------------
-output_dir = os.path.join("results", "gpu-benchmark")
+output_dir = os.path.join("results", f"{EXECUTION_MODE}")
 os.makedirs(output_dir, exist_ok=True)
 
+# -----------------------
+# 5. Execução do benchmark
+# -----------------------
 all_results_for_this_run = []
 
 for model_id, model_cls in models_to_test.items():
@@ -108,7 +126,7 @@ for model_id, model_cls in models_to_test.items():
     finally:
         emissions_data = tracker.stop()
 
-    # Coleta de métricas simples
+    # Coleta de métricas
     result = {
         "model_id": model_id,
         "run_id": run_id,
@@ -122,12 +140,12 @@ for model_id, model_cls in models_to_test.items():
     all_results_for_this_run.append(result)
 
 # -----------------------
-# 5. Salvar resultados
+# 6. Salvar resultados
 # -----------------------
 if all_results_for_this_run:
     run_df = pd.DataFrame(all_results_for_this_run)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_filename = os.path.join(output_dir, f"gpu_benchmark_{cost_scenario}_{timestamp}.csv")
+    run_filename = os.path.join(output_dir, f"{cost_scenario}_{timestamp}.csv")
     run_df.to_csv(run_filename, index=False)
     print(f"\nResultados salvos em: {run_filename}")
 
