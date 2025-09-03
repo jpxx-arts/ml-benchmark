@@ -2,7 +2,7 @@
 
 # --- CONFIGURAÇÕES GERAIS ---
 TOTAL_RUNS=1
-PYTHON_SCRIPT="main.py" # ### MUDANÇA ### Coloque o nome do seu script Python aqui
+PYTHON_SCRIPT="main.py"  # script Python a ser executado
 
 # --- VALIDAÇÃO DO INPUT ---
 if [ "$1" != "on" ] && [ "$1" != "off" ]; then
@@ -14,7 +14,7 @@ fi
 
 # Define o modo CC com base no argumento
 if [ "$1" == "on" ]; then
-  EXEC_MODE="cc_on" # ### MUDANÇA ### Nomes mais curtos para pastas
+  EXEC_MODE="cc_on"
 else
   EXEC_MODE="cc_off"
 fi
@@ -23,7 +23,7 @@ echo "========================================================"
 echo "    INICIANDO EXPERIMENTO COMPLETO - MODO: $EXEC_MODE"
 echo "========================================================"
 
-# ### MUDANÇA ### Nomes dos cenários alinhados com o script Python
+# Cenários alinhados com o script Python
 COST_SCENARIOS=("comm_bound" "compute_bound")
 
 # --- LOOP SOBRE OS CENÁRIOS ---
@@ -34,13 +34,13 @@ for scenario in "${COST_SCENARIOS[@]}"; do
   echo "    INICIANDO CENÁRIO: $scenario"
   echo "--------------------------------------------------------"
 
-  # Define um arquivo de progresso único para cada cenário e modo
+  # Arquivo de progresso único para cada cenário e modo
   PROGRESS_FILE="progress_${scenario}_${EXEC_MODE}.log"
 
-  # Lógica de resumo para este cenário específico
+  # Define de qual execução começar
   if [ -f "$PROGRESS_FILE" ]; then
     LAST_COMPLETED_RUN=$(cat "$PROGRESS_FILE")
-    START_RUN=$(($LAST_COMPLETED_RUN + 1))
+    START_RUN=$((LAST_COMPLETED_RUN + 1))
     echo "Arquivo de progresso ($PROGRESS_FILE) encontrado. Retomando da execução #$START_RUN."
   else
     START_RUN=1
@@ -49,29 +49,24 @@ for scenario in "${COST_SCENARIOS[@]}"; do
 
   if [ "$START_RUN" -gt "$TOTAL_RUNS" ]; then
     echo "Cenário '$scenario' já concluído com $TOTAL_RUNS execuções. Pulando."
-    continue # Pula para o próximo cenário no loop
+    continue
   fi
 
-  # Loop principal para as execuções deste cenário
+  # Loop principal das execuções
   for i in $(seq $START_RUN $TOTAL_RUNS); do
     echo ""
     echo "--- [$(date)] Iniciando Execução #$i de $TOTAL_RUNS (Cenário: $scenario, Modo: $EXEC_MODE) ---"
 
-    # Modifica o modo no arquivo Python
-    sed -i "s/EXECUTION_MODE = '.*'/EXECUTION_MODE = '$EXEC_MODE'/" "$PYTHON_SCRIPT"
-
-    # ### MUDANÇA ###
-    # Executa o script Python, passando o CENÁRIO e o RUN_ID ($i) como argumentos.
-    python "$PYTHON_SCRIPT" "$scenario" "$i"
+    # Executa o script Python passando os 3 argumentos: cenário, run_id, execution_mode
+    python "$PYTHON_SCRIPT" "$scenario" "$i" "$EXEC_MODE"
     
-    # Checa o código de saída do último comando
+    # Checa o código de saída
     if [ $? -eq 0 ]; then
       echo "$i" > "$PROGRESS_FILE"
       echo "--- [$(date)] Execução #$i concluída com sucesso. Progresso salvo. ---"
     else
       echo "--- [$(date)] ERRO: A execução #$i falhou. O progresso NÃO foi salvo. ---"
-      echo "Saindo do script. Verifique o erro acima."
-      echo "Na próxima vez, o script tentará executar o passo #$i novamente."
+      echo "Saindo do script. Na próxima vez, o script tentará executar o passo #$i novamente."
       exit 1
     fi
   done
@@ -81,3 +76,4 @@ echo ""
 echo "========================================================"
 echo "    TODOS OS CENÁRIOS CONCLUÍDOS PARA O MODO $EXEC_MODE"
 echo "========================================================"
+
