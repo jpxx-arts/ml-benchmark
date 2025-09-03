@@ -1,0 +1,15 @@
+name: ml-benchmark
+channels:
+  - rapidsai
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - cudf=24.06
+  - cuml=24.06
+  - xgboost=2.0
+  - scikit-learn
+  - pandas
+  - codecarbon
+  - matplotlib
