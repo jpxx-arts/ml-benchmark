@@ -5,7 +5,7 @@ import sys
 import time
 import warnings
 import logging
-import codecarbon
+from codecarbon import EmissionsTracker
 from sklearn.datasets import make_classification
 
 # cuML imports (GPU-ready)
@@ -14,15 +14,6 @@ from cuml import LogisticRegression as cuLR
 from cuml.neighbors import KNeighborsClassifier as cuKNN
 from cuml import MultinomialNB as cuNB
 import xgboost as xgb
-
-# -----------------------
-# 0. Configurações gerais
-# -----------------------
-# Silenciar warnings
-warnings.filterwarnings("ignore")
-logging.getLogger().setLevel(logging.ERROR)
-os.environ["NUMBA_WARNINGS"] = "0"
-codecarbon.LOGGER.setLevel(logging.ERROR)
 
 # -----------------------
 # 1. Argumentos e datasets
