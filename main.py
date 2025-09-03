@@ -5,7 +5,7 @@ import sys
 import time
 import warnings
 import logging
-from codecarbon import EmissionsTracker
+import codecarbon
 from sklearn.datasets import make_classification
 
 # cuML imports (GPU-ready)
@@ -14,6 +14,13 @@ from cuml import LogisticRegression as cuLR
 from cuml.neighbors import KNeighborsClassifier as cuKNN
 from cuml import MultinomialNB as cuNB
 import xgboost as xgb
+
+# -----------------------
+# 0. Configurações gerais
+# -----------------------
+warnings.filterwarnings("ignore")
+logging.getLogger().setLevel(logging.ERROR)
+os.environ["NUMBA_WARNINGS"] = "0"
 
 # -----------------------
 # 1. Argumentos e datasets
@@ -35,19 +42,21 @@ print(f"Execution Mode: {EXECUTION_MODE}")
 # Dataset conforme gargalo
 # -----------------------
 if cost_scenario == "comm_bound":
+    # Dataset grande (~50-60 GB) para usar bem a GPU
     X, y = make_classification(
-        n_samples=200_000,
-        n_features=100,
-        n_informative=40,
+        n_samples=1_500_000,  # grande número de amostras
+        n_features=100,       # 100 features
+        n_informative=50,
         n_redundant=20,
         random_state=42
     )
 elif cost_scenario == "compute_bound":
+    # Dataset denso para computação intensiva
     X, y = make_classification(
-        n_samples=50_000,
-        n_features=40,
-        n_informative=30,
-        n_redundant=5,
+        n_samples=500_000,
+        n_features=80,
+        n_informative=60,
+        n_redundant=10,
         random_state=42
     )
 else:
@@ -64,8 +73,8 @@ df = pd.concat([X_df, y_s], axis=1)
 compute_bound_params = {
     "cuLR": {"max_iter": 2000},
     "cuKNN": {"n_neighbors": 100},
-    "cuRF": {"n_estimators": 1500, "max_depth": 20},
-    "xgb": {"n_estimators": 1500, "max_depth": 12, "tree_method": "gpu_hist"},
+    "cuRF": {"n_estimators": 3000, "max_depth": 25},  # mais estimators
+    "xgb": {"n_estimators": 2000, "max_depth": 12, "tree_method": "gpu_hist"},
 }
 
 # -----------------------
@@ -93,15 +102,16 @@ all_results_for_this_run = []
 for model_id, model_cls in models_to_test.items():
     print(f"--- Processando {model_id} ({cost_scenario}) ---")
     
-    tracker = EmissionsTracker(
-        project_name=f"{model_id}_{cost_scenario}_{run_id}"
-    )
+    tracker = codecarbon.EmissionsTracker(project_name=f"{model_id}_{cost_scenario}_{run_id}")
     
     try:
         tracker.start()
         
         # Seleção de parâmetros
         params = compute_bound_params.get(model_id, {})
+
+        # Medir tempo real
+        start_time = time.time()
 
         # Cria e treina o modelo
         if model_id == "xgb":
@@ -110,10 +120,12 @@ for model_id, model_cls in models_to_test.items():
         else:
             model = model_cls(**params)
             model.fit(X, y)
-        
+
+        duration_real = time.time() - start_time
         time.sleep(1)  # pequeno delay para coleta de métricas
     except Exception as e:
         print(f"Erro ao treinar {model_id}: {e}")
+        duration_real = None
     finally:
         emissions_data = tracker.stop()
 
@@ -121,6 +133,7 @@ for model_id, model_cls in models_to_test.items():
     result = {
         "model_id": model_id,
         "run_id": run_id,
+        "real_duration_seconds": duration_real,
         "duration_seconds": emissions_data,
         "cpu_energy_kWh": tracker.final_emissions_data.cpu_energy,
         "gpu_energy_kWh": tracker.final_emissions_data.gpu_energy,
