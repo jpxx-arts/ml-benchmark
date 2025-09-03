@@ -2,8 +2,6 @@ import pandas as pd
 import datetime
 import os
 import sys
-import warnings
-import logging
 import codecarbon
 from sklearn.datasets import make_classification
 
@@ -16,13 +14,6 @@ from cuml import MultinomialNB as cuNB
 from cuml.metrics import accuracy_score
 import xgboost as xgb
 import cupy as cp # Usado para conversão de tipos
-
-# -----------------------
-# 0. Configurações
-# -----------------------
-warnings.filterwarnings("ignore")
-logging.getLogger().setLevel(logging.ERROR)
-os.environ["NUMBA_WARNINGS"] = "0"
 
 # -----------------------
 # 1. Argumentos e datasets
