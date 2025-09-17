@@ -2,7 +2,7 @@
 
 # --- CONFIGURAÇÕES GERAIS ---
 TOTAL_RUNS=1
-PYTHON_SCRIPT="main.py"  # script Python a ser executado
+PYTHON_SCRIPT="main_heavy.py"  # script Python a ser executado
 
 # --- VALIDAÇÃO DO INPUT ---
 if [ "$1" != "on" ] && [ "$1" != "off" ]; then
