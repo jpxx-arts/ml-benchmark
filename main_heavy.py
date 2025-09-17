@@ -54,7 +54,7 @@ model_classes = {
 params_heavy = {
     "log_reg": {"max_iter": 5000, "solver": "qn"},
     "knn": {"n_neighbors": 10},
-    "rf": {"n_estimators": 1000, "max_depth": 32},
+    "rf": {"n_estimators": 200, "max_depth": 16},
     "nb": {},
     "svc": {"kernel": "rbf", "C": 10.0, "max_iter": 5000},
 }
